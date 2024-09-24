@@ -1,0 +1,23 @@
+# hostpath 파일 권한
+sudo chown -R 1000:1000 /DATA1/zk
+sudo chmod -R 755 /DATA1/zk
+ 
+ls -ld /DATA1/zk
+drwxr-xr-x 2 root root 4096  9월 21 17:11 /DATA1/zk         # 기존 권한
+drwxr-xr-x 3 changh changh 4096  9월 21 17:18 /DATA1/zk     # 변경된 권한
+
+
+kubectl get pods -n zookeeper -w -l app=zk
+
+# 리더 선출
+for i in 0 1 2; do kubectl exec zk-$i -n zookeeper -- hostname; done
+for i in 0 1 2; do echo "myid zk-$i";kubectl exec zk-$i -n zookeeper -- cat /var/lib/zookeeper/data/myid; done
+
+for i in 0 1 2; do kubectl exec zk-$i -n zookeeper -- hostname -f; done
+
+kubectl exec zk-0 -n zookeeper -- cat /opt/zookeeper/conf/zoo.cfg
+
+
+kubectl exec zk-0 -n zookeeper -- zkCli.sh create /hello world
+kubectl exec zk-1 -n zookeeper -- zkCli.sh get /hello
+

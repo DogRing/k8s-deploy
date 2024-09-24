@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: net-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: net-test
+  namespace: net-test
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: net-test
+  template:
+    metadata:
+      labels:
+        app: net-test
+    spec:
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: net-test
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: net-test
+        image: praqma/network-multitool
+        command:
+          - "sleep"
+          - "604800"

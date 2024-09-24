@@ -1,0 +1,17 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: mytopic1
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: "my-cluster"
+spec:
+  ## 토픽을 나눠서 저장 (병렬 저장, 읽기)
+  partitions: 1
+  ## 토픽을 복사해서 저장
+  replicas: 3
+  config:
+  ## 로그 메시지 보관 기간 설정 (millisecond 단간: 2시간)
+    retention.ms: 7200000
+    segment.bytes: 1073741824
+    min.insync.replicas: 2

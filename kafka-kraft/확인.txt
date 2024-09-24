@@ -1,0 +1,32 @@
+1. helm install kafka-operator -n kafka . 
+2. ka -f clustser.yaml
+==> zookeeper 까지 확인
+
+## strimzipodsets 확인
+kubectl get strimzipodsets -n kafka
+
+## Listener 정보 확인
+kubectl get kafka -n kafka my-cluster -o jsonpath={.status.listeners} | jq
+
+
+### TestPod 배포
+ka -f myclient.yaml
+
+### kafka 도구 확인
+kubectl exec -it ds/myclient -- ls /opt/bitnami/kafka/bin
+### kafka pod 도메인 이름 지정 && 브로커 정보 확인
+SVCDNS=my-cluster-kafka-bootstrap.kafka.svc:9092
+kubectl exec -it ds/myclient -- kafka-broker-api-versions.sh --bootstrap-server $SVCDNS
+
+#### 토픽 생성 (kubectl)
+ka -f mytopic.yaml
+#### 토픽 직접 생성
+kubectl exec -it ds/myclient -- kafka-topics.sh --create --bootstrap-server $SVCDNS --topic mytopic2 --partitions 1 --replication-factor 3 --config retention.ms=172800000
+#### 토픽 리스트 확인
+kubectl exec -it ds/myclient -- kafka-topics.sh --bootstrap-server $SVCDNS --list
+#### 토픽 상세 보기
+kubectl exec -it ds/myclient -- kafka-topics.sh --bootstrap-server $SVCDNS --topic mytopic2 --describe
+
+
+
+helm install my-release oci://registry-1.docker.io/bitnamicharts/kafka
