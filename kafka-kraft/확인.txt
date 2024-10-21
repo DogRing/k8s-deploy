@@ -30,3 +30,15 @@ kubectl exec -it ds/myclient -- kafka-topics.sh --bootstrap-server $SVCDNS --top
 
 
 helm install my-release oci://registry-1.docker.io/bitnamicharts/kafka
+
+
+kd crd kafkabridges.kafka.strimzi.io
+kd crd kafkaconnectors.kafka.strimzi.io
+kd crd kafkaconnects.kafka.strimzi.io
+kd crd kafkamirrormaker2s.kafka.strimzi.io
+kd crd kafkamirrormakers.kafka.strimzi.io
+kd crd kafkanodepools.kafka.strimzi.io
+kd crd kafkarebalances.kafka.strimzi.io
+kd crd kafkas.kafka.strimzi.io
+kd crd kafkatopics.kafka.strimzi.io
+kd crd kafkausers.kafka.strimzi.io
