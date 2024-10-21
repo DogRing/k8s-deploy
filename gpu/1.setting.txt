@@ -9,8 +9,8 @@ sudo apt-get install -y nvidia-container-toolkit
 
 
 3. container runtime 구성
-nvidia-ctk runtime configure --runtime=containerd
-systemctl restart containerd
+sudo nvidia-ctk runtime configure --runtime=containerd
+sudo systemctl restart containerd
 
 ## 확인
 sudo ctr image pull docker.io/nvidia/cuda:11.0.3-base-ubuntu20.04
