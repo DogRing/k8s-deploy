@@ -9,6 +9,9 @@ sudo systemctl restart ntp
 sudo systemctl status ntp
 sudo ntpq -p
 
+timedatectl
+sudo timedatectl set-timezone Asia/Seoul
+
 sudo sysctl -w net.ipv4.ip_forward=1
 sudo cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
 overlay
