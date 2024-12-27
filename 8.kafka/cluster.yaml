@@ -21,16 +21,16 @@ spec:
       - key: "node-role.kubernetes.io/control-plane"
         operator: "Exists"
         effect: "NoSchedule"
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: "strimzi.io/pool-name"
-                    operator: In
-                    values:
-                    - controller
-              topologyKey: "kubernetes.io/hostname"
+      # affinity:
+      #   podAntiAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       - labelSelector:
+      #           matchExpressions:
+      #             - key: "strimzi.io/pool-name"
+      #               operator: In
+      #               values:
+      #               - controller
+      #         topologyKey: "kubernetes.io/hostname"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
@@ -55,16 +55,16 @@ spec:
       - key: "node-role.kubernetes.io/control-plane"
         operator: "Exists"
         effect: "NoSchedule"
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: "strimzi.io/pool-name"
-                    operator: In
-                    values:
-                    - broker
-              topologyKey: "kubernetes.io/hostname"
+      # affinity:
+      #   podAntiAffinity:
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+      #       - labelSelector:
+      #           matchExpressions:
+      #             - key: "strimzi.io/pool-name"
+      #               operator: In
+      #               values:
+      #               - broker
+      #         topologyKey: "kubernetes.io/hostname"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka

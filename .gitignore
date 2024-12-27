@@ -1,2 +1,4 @@
-kafka*/strimzi-kafka-operator/
+8.kafka/strimzi-kafka-operator/
 kube-prometheus-stack/
+cert-manager/auth
+smb/4.nssecret.sh

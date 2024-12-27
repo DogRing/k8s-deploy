@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: code-server-config
+  namespace: code-server
+data:
+  config.yaml: |
+    bind-addr: 127.0.0.1:8080
+    auth: none
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: code-server
+  name: code-server
+  namespace: code-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-server
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      initContainers:
+        - name: kubectl-copy
+          image: bitnami/kubectl
+          command: ["cp","/opt/bitnami/kubectl/bin/kubectl","/mnt/bin/kubectl"]
+          volumeMounts:
+            - name: bin-volume
+              mountPath: /mnt/bin
+        - name: helm-copy
+          image: alpine/helm
+          command: ["cp","/usr/bin/helm","/mnt/bin/helm"]
+          volumeMounts:
+            - name: bin-volume
+              mountPath: /mnt/bin
+      containers:
+        - image: codercom/code-server:latest
+          name: code-server
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 1
+              memory: "1Gi"
+            limits:
+              cpu: 2
+              memory: "4Gi"
+          volumeMounts:
+            - name: smb
+              mountPath: "/home/coder/TorchTrade"
+              subPath: "repos/TorchTrade"
+            - name: smb
+              mountPath: "/home/coder/smb-data"
+            - name: azsmb
+              mountPath: "/home/coder/azsmb"
+            - name: bin-volume
+              mountPath: /usr/local/bin/kubectl
+              subPath: kubectl
+            - name: bin-volume
+              mountPath: /usr/local/bin/helm
+              subPath: helm
+            - name: kubeconfig
+              mountPath: /home/coder/.kube
+              readOnly: true
+            - name: code-config
+              mountPath: /home/coder/.config/code-server
+      volumes:
+        - name: smb
+          persistentVolumeClaim:
+            claimName: pvc-smb
+        - name: azsmb
+          persistentVolumeClaim:
+            claimName: pvc-azsmb
+        - name: bin-volume
+          emptyDir: {}
+        - name: kubeconfig
+          configMap:
+            name: kubeconfig
+        - name: code-config
+          configMap:
+            name: code-server-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-server
+  namespace: code-server
+spec:
+  selector:
+    app: code-server
+  ports:
+  - port: 8080
+    targetPort: 8080
