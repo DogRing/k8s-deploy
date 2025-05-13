@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: n8n-hooks
+  namespace: n8n
+data:
+  hooks.js: |
+    const { dirname, resolve } = require('path')
+    const { issueCookie } = require(resolve(dirname(require.resolve('n8n')), 'auth/jwt'))
+    const ignoreAuthRegexp = /^\/(assets|healthz|webhook|rest\/oauth2-credential)/
+    
+    module.exports = {
+      n8n: {
+        ready: [
+          async function ({ app }, config) {
+            const router = app._router || app.router;
+            const routerStack = router?.stack || app.stack;
+            const cookieParserIndex = routerStack.findIndex(layer => 
+              layer.handle?.name === 'cookieParser'
+            );
+            if (cookieParserIndex === -1) {
+              const middlewareList = routerStack.map(l => l.handle?.name || l.name);
+              throw new Error('cookieParser 미들웨어 누락');
+            }
+            const authMiddleware = async (req, res, next) => {
+              try {
+                if (ignoreAuthRegexp.test(req.path)) return next();
+                if (!config.get('userManagement.isInstanceOwnerSetUp', false)) return next();
+                if (req.cookies?.['n8n-auth']) return next();
+                if (!process.env.N8N_FORWARD_AUTH_HEADER) return next();
+
+                const email = req.headers[process.env.N8N_FORWARD_AUTH_HEADER.toLowerCase()];
+                if (!email) return next();
+
+                const user = await this.dbCollections.User.findOneBy({ email });
+                if (!user) {
+                  console.error(`사용자 미등록: ${email}`);
+                  return res.status(401).json({ 
+                    code: 'AUTH_USER_NOT_FOUND',
+                    message: 'Authelia 인증 성공했으나 n8n 사용자 없음'
+                  });
+                }
+                issueCookie(res, user);
+                next();
+              } catch (error) {
+                console.error('인증 미들웨어 오류:', error);
+                next(error);
+              }
+            };
+            router.insertMiddleware = router.insertMiddleware || function(index,middleware){
+              routerStack.splice(index,0,{
+                handle: middleware,
+                name: middleware.name || 'anonymous',
+                params: {},
+                path: '/',
+                keys: [],
+                regexp: /^\/.*$/,
+                match: function(path) {
+                  return this.regexp.test(path);
+                },
+                handleRequest: function(req,res,next) {
+                  this.handle(req,res,next);
+                }
+              })
+            }
+
+            router.insertMiddleware(cookieParserIndex + 1,authMiddleware)
+          },
+        ],
+      },
+    }

@@ -1,0 +1,28 @@
+curl http://ollama-ds.ollama:11434/api/generate -d '{
+  "model": "deepseek-r1:1.5b",
+  "prompt": "What color is the sky at different times of the day?",
+  "format": "json",
+  "stream": false
+}'
+
+curl http://ollama-ds.ollama:11434/api/generate -d '{
+  "model": "codegemma:2b-code-q2_K",
+  "prompt": "def Hello_World():",
+  "format": "json",
+  "stream": false
+}'
+
+curl http://localhost:11434/api/generate -d '{  "model": "codellama:7b-python-q4_K_S",  "prompt": "def Hello_World():",  "format": "json",  "stream": false}'
+
+
+codgemma:2b-instruct-q2
+codegen:350m-q4_0
+deepseek-coder:1.3b-instruct-q2_K
+deepseek-coder:1.3b-base-q4_1
+codegemma:2b-code-q2_K
+deepseek-r1:1.5b
+codellama:7b-python-q4_K_S
+codellama:7b-python-q3_K_S
+codellama:7b-python-q2_K
+gemma2:2b
+qwen2.5-coder:1.5b-base

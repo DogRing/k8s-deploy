@@ -6,7 +6,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: "smb"
+  storageClassName: "smb-data"
   resources:
     requests:
       storage: 10Gi

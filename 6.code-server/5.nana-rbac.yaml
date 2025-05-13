@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nana-user-role
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+- nonResourceURLs: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nana-user-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: nana-user
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: nana-user-role
+  apiGroup: rbac.authorization.k8s.io

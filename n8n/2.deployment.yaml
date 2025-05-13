@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: n8n-data-pvc
+  namespace: n8n
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: n8n
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+      annotations:
+        enableServiceLinks: "false"
+    spec:
+      initContainers:
+      - name: install-express
+        image: node:20.19.0
+        command: 
+          - sh
+          - -c
+          - |
+            mkdir -p /custom_node_modules
+            npm config set prefix /custom_node_modules/.npm-global
+            npm install --global \
+              express@4.18.2 \
+              semver@7.5.4 \
+              json-diff@0.5.4 \
+              source-map-support@0.5.21 \
+              reflect-metadata@0.2.1 \
+              @oclif/core@2.8.11 \
+              @n8n/config@2.15.0 \
+              n8n-workflow@1.18.0 \
+              typeorm@0.3.17
+            chmod -R 777 /custom_node_modules
+        volumeMounts:
+        - name: node-modules
+          mountPath: /custom_node_modules
+      containers:
+      - name: n8n
+        image: n8nio/n8n:latest
+        ports:
+        - containerPort: 5678
+        env:
+        - name: GENERIC_TIMEZONE
+          value: "Asia/Seoul"
+        - name: N8N_HOST
+          value: "n8n.dogring.kr"
+        - name: WEBHOOK_URL
+          value: "https://n8n.dogring.kr/"
+        - name: N8N_PORT
+          value: "5678"
+        - name: N8N_PROTOCOL
+          value: "https"
+        - name: VUE_APP_URL_BASE_API
+          value: "n8n.dogring.kr"
+        - name: VUE_APP_PATH
+          value: "/"
+        - name: EXTERNAL_HOOK_FILES
+          value: "/home/node/.n8n/hooks.js"
+        - name: N8N_FORWARD_AUTH_HEADER
+          value: "Remote-Email"
+        - name: N8N_EXPRESS_TRUST_PROXY
+          value: "true"
+        - name: N8N_PROXY_HOPS
+          value: "2"
+        - name: DB_TYPE
+          value: "sqlite"
+        - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+          value: "true"
+        - name: NODE_PATH
+          value: /usr/local/lib/node_modules/n8n/node_modules:/custom_node_modules/.npm-global/lib/node_modules
+        - name: NPM_CONFIG_PREFIX
+          value: /custom_node_modules/.npm-global
+        - name: N8N_USER_MANAGEMENT_DISABLED
+          value: "false"
+        - name: N8N_USER_MANAGEMENT_SKIP_INSTALLATION
+          value: "true"
+        - name: N8N_SESSION_COOKIE_SECURE
+          value: "true"
+        - name: N8N_SESSION_COOKIE_SAME_SITE
+          value: "Lax"
+        - name: N8N_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: n8n-secrets
+              key: N8N_ENCRYPTION_KEY
+        volumeMounts:
+        - name: hooks
+          mountPath: /home/node/.n8n/hooks.js
+          subPath: hooks.js
+        - name: data
+          mountPath: /home/node/.n8n
+        - name: node-modules
+          mountPath: /custom_node_modules
+      volumes:
+      - name: hooks
+        configMap:
+          name: n8n-hooks
+      - name: data
+        persistentVolumeClaim:
+          claimName: n8n-data-pvc
+      - name: node-modules
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-service
+  namespace: n8n
+spec:
+  selector:
+    app: n8n
+  type: NodePort
+  ports:
+    - nodePort: 31001
+      protocol: TCP
+      port: 5678
+      targetPort: 5678

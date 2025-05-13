@@ -1,4 +1,9 @@
 8.kafka/strimzi-kafka-operator/
 kube-prometheus-stack/
 cert-manager/auth
-smb/4.nssecret.sh
+2.smb/4.nssecret.sh
+*/*secret.yaml
+*/*secret.sh
+*/*password.*
+6.code-server/*-auth
+6.code-server/*-kubeconfig.yaml

@@ -1,34 +1,35 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: code-server
-  namespace: code-server
+  name: n8n
+  namespace: n8n
   annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: buypass-prod
     nginx.ingress.kubernetes.io/auth-url: "http://authelia.authelia.svc.cluster.local:9091/api/verify"
-    nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User, Remote-Name, Remote-Email, Remote-Groups"
     nginx.ingress.kubernetes.io/auth-signin: "https://auth.dogring.kr/"
     nginx.ingress.kubernetes.io/proxy-set-headers: |
       'X-Real-IP $remote_addr'
       'X-Forwarded-For $proxy_add_x_forwarded_for'
       'X-Forwarded-Proto $scheme'
       'X-Forwarded-Host $host'
-    kubernetes.io/tls-acme: "true"
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/auth-response-headers: "Remote-User, Remote-Name, Remote-Email, Remote-Groups"
 spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - code.dogring.kr
-    secretName: code-dogring-cert
+    - n8n.dogring.kr
+    secretName: n8n-dogring-cert
   rules:
-  - host: code.dogring.kr
+  - host: n8n.dogring.kr
     http:
-      paths: 
+      paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: code-server
+            name: n8n-service
             port:
-              number: 8080
+              number: 5678

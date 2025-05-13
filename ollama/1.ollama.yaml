@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ollama
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama-deepseek
+  namespace: ollama
+spec:
+  selector:
+    matchLabels:
+      app: ollama-ds
+  template:
+    metadata:
+      labels:
+        app: ollama-ds
+    spec:
+      runtimeClassName: nvidia
+      containers:
+      - name: ollama-ds
+        image: ollama/ollama:latest
+        env:
+        - name: OLLAMA_KEEP_ALIVE
+          value: "-1"
+        - name: OLLAMA_NUM_GPU_LAYERS
+          value: "8"
+        - name: OLLAMA_TIMEOUT 
+          value: "300"
+        - name: CUDA_VISIBLE_DEVICES
+          value: "0"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+        command: ["/bin/sh","-c"]
+        args:
+        - |
+          ollama serve & 
+          pid=$!
+          sleep 10
+          ollama pull granite3.2:2b
+          wait $pid
+        ports:
+        - name: ollamaport
+          containerPort: 11434
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-ds
+  namespace: ollama
+spec:
+  selector:
+    app: ollama-ds
+  ports:
+  - port: 11434
+    name: ollamaport
+    targetPort: ollamaport
+    protocol: TCP

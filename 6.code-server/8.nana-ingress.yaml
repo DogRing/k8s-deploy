@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: code-server
+  name: nana-server
   namespace: code-server
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -19,16 +19,16 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - code.dogring.kr
-    secretName: code-dogring-cert
+    - nana.dogring.kr
+    secretName: nana-dogring-cert
   rules:
-  - host: code.dogring.kr
+  - host: nana.dogring.kr
     http:
-      paths: 
+      paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: code-server
+            name: nana-server
             port:
               number: 8080

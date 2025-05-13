@@ -1,0 +1,23 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nana-user
+  namespace: default
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nana-user-secret
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: nana-user
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nana-user
+  namespace: default
+secrets:
+- name: nana-user-secret

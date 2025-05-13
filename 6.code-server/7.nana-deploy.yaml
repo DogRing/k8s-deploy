@@ -1,12 +1,7 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: code-server
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: code-server-config
+  name: nana-server-config
   namespace: code-server
 data:
   config.yaml: |
@@ -17,18 +12,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: code-server
-  name: code-server
+    app: nana-server
+  name: nana-code-server
   namespace: code-server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: code-server
+      app: nana-server
   template:
     metadata:
       labels:
-        app: code-server
+        app: nana-server
     spec:
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"
@@ -55,18 +50,18 @@ spec:
           resources:
             requests:
               cpu: 1
-              memory: "1Gi"
+              memory: "512Mi"
             limits:
               cpu: 2
               memory: "4Gi"
           volumeMounts:
             - name: smb
-              mountPath: "/home/coder/kttrade"
-              subPath: "repos/kttrade"
+              mountPath: "/home/coder/smb"
+              subPath: "repos/nana"
             - name: smb
-              mountPath: "/home/coder/smb-data"
-            - name: azsmb
-              mountPath: "/home/coder/azsmb"
+              mountPath: "/home/coder/k8s-read"
+              subPath: "repos/k8s"
+              readOnly: true
             - name: bin-volume
               mountPath: /usr/local/bin/kubectl
               subPath: kubectl
@@ -78,15 +73,10 @@ spec:
               readOnly: true
             - name: code-config
               mountPath: /home/coder/.config/code-server
-            - name: ghost-content
-              mountPath: /home/coder/blog
       volumes:
         - name: smb
           persistentVolumeClaim:
             claimName: pvc-smb
-        - name: azsmb
-          persistentVolumeClaim:
-            claimName: pvc-azsmb
         - name: bin-volume
           emptyDir: {}
         - name: kubeconfig
@@ -94,19 +84,16 @@ spec:
             name: kubeconfig
         - name: code-config
           configMap:
-            name: code-server-config
-        - name: ghost-content
-          persistentVolumeClaim:
-            claimName: ghost-content-pvc
+            name: nana-server-config
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: code-server
+  name: nana-server
   namespace: code-server
 spec:
   selector:
-    app: code-server
+    app: nana-server
   ports:
   - port: 8080
     targetPort: 8080

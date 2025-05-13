@@ -22,3 +22,4 @@ sudo ctr run --rm -t \
 
 4. gpu node 라벨 추가
 kubectl label nodes changh-ubt gpu=nvidia
+kubectl label nodes changhgpu gpu=nvidia-high

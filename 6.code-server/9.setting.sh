@@ -1,6 +1,5 @@
 sudo apt update
-sudo apt install vim
-sudo apt install bash-completion -y
+sudo apt install bash-completion vim -y
 source <(kubectl completion bash)
 echo "source <(kubectl completion bash)" >> ~/.bashrc
 complete -F __start_kubectl k
@@ -14,3 +13,5 @@ alias kd='kubectl delete'
 complete -F __start_kubectl k" >> ~/.bashrc
 . ~/.bashrc
 
+git config --global user.name "DogRing"
+git config --global user.email "changh232@naver.com"
