@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llama-server
+  namespace: llama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama-server
+  template:
+    metadata:
+      labels:
+        app: llama-server
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        gpu: nvidia
+      containers:
+      - name: llama
+        image: ghcr.io/ggerganov/llama.cpp:server-cuda
+        # command: ["/bin/sh", "-c"]
+        # args: ["sleep 244444"]
+        args: ["-m", "/models/kanana-nano-2.1b-instruct-Q5_K_M.gguf", "--n-gpu-layers", "22", "--ctx-size", "2048", "--host", "0.0.0.0"]  # 모델 파일명 수정, GPU 레이어 최대, 컨텍스트 2048 토큰
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: "6Gi"
+            nvidia.com/gpu: 1
+          requests:
+            memory: "2Gi"
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: model-volume
+          mountPath: /models
+      volumes:
+      - name: model-volume
+        persistentVolumeClaim:
+          claimName: model-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llama-service
+  namespace: llama
+spec:
+  selector:
+    app: llama-server
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+  loadBalancerIP: 192.168.0.244

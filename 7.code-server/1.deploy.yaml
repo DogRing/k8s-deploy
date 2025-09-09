@@ -1,0 +1,206 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: code-server-config
+  namespace: code-server
+data:
+  config.yaml: |
+    bind-addr: 127.0.0.1:8080
+    auth: none
+  # k8sgpt.yaml: |
+  #   language: ko
+    
+  #   ai:
+  #       providers:
+  #           - name: ollama
+  #             model: exaone3.5:2.4b
+  #             baseurl: http://ollama-ds.ollama.svc.cluster.local:11434
+  #             temperature: 0.7
+  #             topp: 0.5
+  #             topk: 50
+  #             maxtokens: 2048
+  #             customheaders: []
+  #       defaultprovider: "ollama"
+  #   commit: 306b3c9
+  #   date: unknown
+  #   kubeconfig: ""
+  #   kubecontext: ""
+  #   verbose: false
+  #   version: 0.4.17
+---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: k8sgpt-read-access
+# rules:
+#   - apiGroups: ["", "apps", "batch", "networking.k8s.io", "admissionregistration.k8s.io"]
+#     resources: ["pods", "nodes", "configmaps", "services", "endpoints", "deployments", "replicasets", "jobs", "cronjobs", "statefulsets", "persistentvolumeclaims", "ingresses", "mutatingwebhookconfigurations", "validatingwebhookconfigurations"]
+#     verbs: ["get", "list", "watch"]
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: code-server-k8sgpt-read
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: k8sgpt-read-access
+# subjects:
+#   - kind: ServiceAccount 
+#     name: default
+#     namespace: code-server
+# ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: code-server
+  name: code-server
+  namespace: code-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-server
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+      initContainers:
+        - name: kubectl-copy
+          image: bitnami/kubectl
+          command: ["cp","/opt/bitnami/kubectl/bin/kubectl","/mnt/bin/kubectl"]
+          volumeMounts:
+            - name: bin-volume
+              mountPath: /mnt/bin
+        - name: helm-copy
+          image: alpine/helm
+          command: ["cp","/usr/bin/helm","/mnt/bin/helm"]
+          volumeMounts:
+            - name: bin-volume
+              mountPath: /mnt/bin
+        # - name: k8sgpt-copy
+        #   image: alpine:latest
+        #   command:
+        #     - /bin/sh
+        #     - -c
+        #     - |
+        #       apk add --no-cache curl tar && \
+        #       curl -L https://github.com/k8sgpt-ai/k8sgpt/releases/latest/download/k8sgpt_Linux_x86_64.tar.gz -o /tmp/k8sgpt.tar.gz && \
+        #       tar -xzf /tmp/k8sgpt.tar.gz -C /mnt/bin && \
+        #       chmod +x /mnt/bin/k8sgpt
+        #   volumeMounts:
+        #     - name: bin-volume
+        #       mountPath: /mnt/bin
+      containers:
+        - image: codercom/code-server:latest
+          name: code-server
+          ports:
+            - containerPort: 8080
+          args:
+            - "/home/coder/workspace"
+          env:
+            - name: KUBECONFIG
+              value: /home/coder/.kube/config
+            # - name: K8SGPT_BACKEND
+            #   value: ollama
+            # - name: K8SGPT_MODEL
+            #   value: exaone3.5:2.4b
+            # - name: K8SGPT_BASEURL
+            #   value: http://ollama-ds.ollama.svc.cluster.local:11434
+          resources:
+            requests:
+              cpu: 1
+              memory: "1Gi"
+            limits:
+              cpu: 1.5
+              memory: "5Gi"
+          volumeMounts:
+            - name: bin-volume
+              mountPath: /usr/local/bin/kubectl
+              subPath: kubectl
+            - name: bin-volume
+              mountPath: /usr/local/bin/helm
+              subPath: helm
+            # - name: bin-volume
+            #   mountPath: /usr/local/bin/k8sgpt
+            #   subPath: k8sgpt
+            # - name: code-config
+            #   mountPath: /home/coder/.config/k8sgpt/k8sgpt.yaml
+            #   subPath: k8sgpt.yaml
+            - name: kubeconfig
+              mountPath: /home/coder/.kube
+              readOnly: true
+            - name: code-config
+              mountPath: /home/coder/.config/code-server/config.yaml
+              subPath: config.yaml
+            # - name: azsmb
+            #   mountPath: "/home/coder/workspace/azsmb"
+            - name: code-data
+              mountPath: /home/coder/workspace
+              readOnly: false
+            - name: nfs-vol
+              mountPath: /home/coder/workspace/nfs
+            - name: nfs-vol
+              mountPath: /home/coder/workspace/k8s
+              subPath: k8s
+            - name: ghost-vol
+              mountPath: /home/coder/workspace/pod-data/ghost
+            - name: isso-vol
+              mountPath: /home/coder/workspace/pod-data/isso
+            - name: n8n-vol
+              mountPath: /home/coder/workspace/pod-data/n8n
+      volumes:
+        # - name: azsmb
+        #   persistentVolumeClaim:
+        #     claimName: pvc-azsmb
+        - name: bin-volume
+          emptyDir: {}
+        - name: kubeconfig
+          configMap:
+            name: kubeconfig
+        - name: code-config
+          configMap:
+            name: code-server-config
+        - name: code-data
+          persistentVolumeClaim:
+            claimName: code-server-pvc
+        - name: nfs-vol
+          persistentVolumeClaim:
+            claimName: nfs-vol
+        - name: ghost-vol
+          nfs:
+            server: 10.99.18.9
+            path: /pvc-e3eab845-cdb5-4d6b-be1e-02501f034633
+            readOnly: false
+        - name: isso-vol
+          nfs:
+            server: 10.101.17.117
+            path: /pvc-0ac5fcc4-7fbf-4df1-bafb-166a6827da2e
+            readOnly: false
+        - name: n8n-vol
+          nfs: 
+            server: 10.100.220.109
+            path: /pvc-79c922c9-7c5c-44a3-bb3c-f0f0c085cbd4
+            readOnly: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-server
+  namespace: code-server
+spec:
+  selector:
+    app: code-server
+  ports:
+  - port: 8080
+    targetPort: 8080

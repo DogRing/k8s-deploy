@@ -1,0 +1,28 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    meta.helm.sh/release-name: longhorn
+    meta.helm.sh/release-namespace: longhorn
+  creationTimestamp: "2025-07-24T14:38:35Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: longhorn
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: longhorn
+    app.kubernetes.io/version: v1.9.1
+    helm.sh/chart: longhorn-1.9.1
+    name: longhorn-prometheus-servicemonitor
+  name: longhorn-prometheus-servicemonitor
+  namespace: longhorn
+  resourceVersion: "379095"
+  uid: dfc5f20c-dec1-47f8-924c-ce0690df25e9
+spec:
+  endpoints:
+  - port: manager
+  namespaceSelector:
+    matchNames:
+    - longhorn
+  selector:
+    matchLabels:
+      app: longhorn-manager

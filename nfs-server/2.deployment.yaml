@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-server
+  namespace: nfs-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-server
+  template:
+    metadata:
+      labels:
+        app: nfs-server
+    spec:
+      hostNetwork: true
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: talos-6in-aky
+      containers:
+      - name: nfs-server
+        image: itsthenetwork/nfs-server-alpine:latest
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 2049
+          name: nfs
+        - containerPort: 111
+          name: rpcbind
+        - containerPort: 20048
+          name: mountd
+        env:
+        - name: SHARED_DIRECTORY
+          value: "/exports"
+        volumeMounts:
+          - name: nfs-data
+            mountPath: /exports
+      volumes:
+        - name: nfs-data
+          persistentVolumeClaim:
+            claimName: nfs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-service
+  namespace: nfs-server
+spec:
+  selector:
+    app: nfs-server
+  ports:
+  - name: nfs
+    port: 2049
+    targetPort: 2049
+  - name: rpcbind
+    port: 111
+    targetPort: 111
+  - name: mountd
+    port: 20048
+    targetPort: 20048
+  type: LoadBalancer
+  loadBalancerIP: 192.168.0.244

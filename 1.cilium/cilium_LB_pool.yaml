@@ -1,0 +1,17 @@
+apiVersion: cilium.io/v2alpha1
+kind: CiliumLoadBalancerIPPool
+metadata: 
+  name: default-pool
+spec:
+  blocks:
+  - cidr: "192.168.0.240/28"
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: announce-nfs
+  namespace: kube-system
+spec:
+  loadBalancerIPs: true 
+  interfaces:
+  - enp2s0

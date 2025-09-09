@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: isso-config
+  namespace: ghost
+data:
+  isso.cfg: |
+    [general]
+    dbpath = /db/comments.db
+    host = https://dogring.kr/
+
+    [server]
+    listen = http://0.0.0.0:8080
+    public-endpoint = https://comments.dogring.kr
+
+    [moderation]
+    enabled = false
+
+    [guard]
+    require-author = true
+    require-email = false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: isso-pvc
+  namespace: ghost
+spec:
+  storageClassName: longhorn-rwx
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: isso
+  namespace: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: isso
+  template:
+    metadata:
+      labels:
+        app: isso
+    spec:
+      containers:
+      - name: isso
+        image: ghcr.io/isso-comments/isso:0.13.0
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: isso-config
+          mountPath: /config/isso.cfg
+          subPath: isso.cfg
+        - name: isso-db
+          mountPath: /db
+      volumes:
+      - name: isso-config
+        configMap:
+          name: isso-config
+      - name: isso-db
+        persistentVolumeClaim:
+          claimName: isso-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: isso-service
+  namespace: ghost
+spec:
+  selector:
+    app: isso
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP

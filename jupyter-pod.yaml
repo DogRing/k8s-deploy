@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-kernel
+  namespace: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: python-kernel
+  template:
+    metadata:
+      labels:
+        app: python-kernel
+    spec:
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+        - name: python
+          image: python:3.11-slim
+          workingDir: /source
+          ports:
+            - containerPort: 8888
+          command: 
+            - "sh"
+            - "-c"
+            - |
+              pip install pandas jupyter optuna scikit-learn xgboost
+              pip3 install torch --index-url https://download.pytorch.org/whl/cpu
+              jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root --MappingKernelManager.cull_idle_timeout=600 --NotebookApp.token=''
+          resources:
+            requests:
+              cpu: "1"
+              memory: "2Gi"
+            limits: 
+              cpu: "2"
+              memory: "6Gi"
+          volumeMounts:
+          - name: smb
+            mountPath: "/source/local_values.py"
+            subPath: "ttrade/local_values.py"
+            readOnly: true
+          - name: azsmb
+            mountPath: "/data/raw"
+            subPath: "ttrade/raw"
+          - name: smb
+            mountPath: "/model"
+            subPath: "ttrade/250604/model"
+          - name: smb
+            mountPath: "/source/Model.py"
+            subPath: "ttrade/250604/model/Model.py"
+          - name: smb
+            mountPath: "/data/data"
+            subPath: "ttrade/250604/data"
+          - name: smb
+            mountPath: "/data/raw2"
+            subPath: "ttrade/data/raw"
+          - name: smb
+            mountPath: "/source/data_transform.py"
+            subPath: "ttrade/lib/data_transform.py"
+            readOnly: true
+          - name: smb
+            mountPath: "/source/data_loader.py"
+            subPath: "ttrade/lib/data_loader.py"
+            readOnly: true
+          - name: smb
+            mountPath: "/source/indicators.py"
+            subPath: "ttrade/lib/indicators.py"
+            readOnly: true
+      volumes:
+        # - name: datadir
+        #   hostPath:
+        #     path: /DATA1/ttrade
+        #     type: DirectoryOrCreate
+        - name: smb
+          persistentVolumeClaim:
+            claimName: pvc-smb
+        - name: azsmb
+          persistentVolumeClaim:
+            claimName: pvc-azsmb
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-kernel
+  namespace: test
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8888
+      targetPort: 8888
+  selector:
+    app: python-kernel

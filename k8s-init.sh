@@ -4,10 +4,15 @@ sudo swapoff -a
 free
 sudo sed -i '/ swap / s/^/#/' /etc/fstab
 sudo vi /etc/fstab
-sudo apt -y install ntp
-sudo systemctl restart ntp
-sudo systemctl status ntp
-sudo ntpq -p
+# sudo apt -y install ntp
+# sudo systemctl restart ntp
+# sudo systemctl status ntp
+# sudo ntpq -p
+
+sudo apt install -y chrony
+sudo systemctl enable chrony
+sudo systemctl start chrony
+sudo ufw allow 123/udp
 
 timedatectl
 sudo timedatectl set-timezone Asia/Seoul
@@ -81,10 +86,10 @@ sudo reboot
 docker info # Cgroup Driver: systemd 확인
 
 # k8s v1.28
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key |
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.33/deb/Release.key |
 sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | 
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.33/deb/ /' | 
 sudo tee /etc/apt/sources.list.d/kubernetes.list
 sudo apt update
 
@@ -111,7 +116,7 @@ sudo vi /etc/hosts
 
 # pod-network-cidr(10.x.x.x) 기본값=10.96.0.0/12 
 # apiserver-advertise-address 는 수신 대기 중임을 알릴 IP 주소. Master node의 IP 주소 설정
-sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.0.12
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=192.168.0.14
 mkdir -p ~/.kube
 sudo cp /etc/kubernetes/admin.conf ~/.kube/config
 sudo chown $(id -u):$(id -g) ~/.kube/config
@@ -242,3 +247,11 @@ helm repo add nvidia https://helm.ngc.nvidia.com/nvidia \
 helm install --wait --generate-name \
     -n gpu-operator --create-namespace \
     nvidia/gpu-operator
+
+# 저널 로그 축소
+sudo journalctl --vacuum-size=1G
+sudo journalctl --vacuum-time=3d
+sudo apt-get clean
+sudo apt-get autoremove --purge
+sudo crictl rmi --prune
+kubectl delete pod --all-namespaces --field-selector=status.phase!=Running

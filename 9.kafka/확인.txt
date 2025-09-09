@@ -1,0 +1,70 @@
+kubectl create namespace kafka
+helm repo add strimzi https://strimzi.io/charts/
+helm repo update
+helm install strimzi-operator strimzi/strimzi-kafka-operator -n kafka
+
+helm install strimzi-cluster-operator strimzi/strimzi-kafka-operator -n kafka
+
+
+
+1. helm install kafka-operator -n kafka . 
+2. ka -f clustser.yaml
+==> zookeeper 까지 확인
+
+## strimzipodsets 확인
+kubectl get strimzipodsets -n kafka
+
+## Listener 정보 확인
+kubectl get kafka -n kafka my-cluster -o jsonpath={.status.listeners} | jq
+
+
+### TestPod 배포
+ka -f myclient.yaml
+
+### kafka 도구 확인
+kubectl exec -it ds/myclient -- ls /opt/bitnami/kafka/bin
+### kafka pod 도메인 이름 지정 && 브로커 정보 확인
+SVCDNS=my-cluster-kafka-bootstrap.kafka.svc:9092
+kubectl exec -it ds/myclient -- kafka-broker-api-versions.sh --bootstrap-server $SVCDNS
+
+#### 토픽 생성 (kubectl)
+ka -f mytopic.yaml
+#### 토픽 직접 생성
+kubectl exec -it ds/myclient -- kafka-topics.sh --create --bootstrap-server $SVCDNS --topic mytopic2 --partitions 1 --replication-factor 3 --config retention.ms=172800000
+#### 토픽 리스트 확인
+kubectl exec -it ds/myclient -- kafka-topics.sh --bootstrap-server $SVCDNS --list
+#### 토픽 상세 보기
+kubectl exec -it ds/myclient -- kafka-topics.sh --bootstrap-server $SVCDNS --topic mytopic2 --describe
+
+
+kubectl -n kafka exec -it my-cluster-kafka-0 -- \
+  /opt/kafka/bin/kafka-run-class.sh kafka.tools.GetOffsetShell \
+    --broker-list localhost:9092 --topic krw-btc-240 --time -1
+
+./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 \
+  --topic krw-btc-240 --from-beginning --max-messages 20 \
+  --property print.timestamp=true
+
+./bin/kafka-console-consumer.sh   --bootstrap-server localhost:9092   --topic krw-btc-240   --partition 0   --offset 707200   --property print.timestamp=true
+
+./bin/kafka-get-offsets.sh              --bootstrap-server localhost:9092 --topic krw-btc-240 --time -1
+./bin/kafka-delete-records.sh --bootstrap-server localhost:9092   --offset-json-file <(
+    echo "{\"version\":1,\"partitions\":[
+      {\"topic\":\"krw-btc-240\",\"partition\":0,\"offset\":-1}
+]}"
+)
+
+
+helm install my-release oci://registry-1.docker.io/bitnamicharts/kafka
+
+
+kd crd kafkabridges.kafka.strimzi.io
+kd crd kafkaconnectors.kafka.strimzi.io
+kd crd kafkaconnects.kafka.strimzi.io
+kd crd kafkamirrormaker2s.kafka.strimzi.io
+kd crd kafkamirrormakers.kafka.strimzi.io
+kd crd kafkanodepools.kafka.strimzi.io
+kd crd kafkarebalances.kafka.strimzi.io
+kd crd kafkas.kafka.strimzi.io
+kd crd kafkatopics.kafka.strimzi.io
+kd crd kafkausers.kafka.strimzi.io

@@ -7,8 +7,8 @@ spec:
     server: https://api.buypass.com/acme/directory
     email: changh232@naver.com
     privateKeySecretRef:
-      name: buypass-account-key
+      name: buypass-prod
     solvers:
       - http01:
           ingress:
-            class: nginx
+            ingressClassName: nginx

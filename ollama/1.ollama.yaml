@@ -1,63 +1,51 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ollama
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ollama-deepseek
-  namespace: ollama
+  name: llama-server
+  namespace: llama
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: ollama-ds
+      app: llama-server
   template:
     metadata:
       labels:
-        app: ollama-ds
+        app: llama-server
     spec:
       runtimeClassName: nvidia
+      nodeSelector:
+        gpu: nvidia  
       containers:
-      - name: ollama-ds
-        image: ollama/ollama:latest
-        env:
-        - name: OLLAMA_KEEP_ALIVE
-          value: "-1"
-        - name: OLLAMA_NUM_GPU_LAYERS
-          value: "8"
-        - name: OLLAMA_TIMEOUT 
-          value: "300"
-        - name: CUDA_VISIBLE_DEVICES
-          value: "0"
+      - name: llama
+        image: ghcr.io/ggerganov/llama.cpp:server
+        command: ["/bin/sh", "-c"]
+        args: ["llama-server -m /models/kanana-nano-2.1B.gguf --n-gpu-layers 999 --ctx-size 2048"]  # GPU 레이어 최대, 컨텍스트 2048
+        ports:
+        - containerPort: 8080
         resources:
           limits:
-            cpu: "1"
-            memory: "4Gi"
-            nvidia.com/gpu: "1"
-        command: ["/bin/sh","-c"]
-        args:
-        - |
-          ollama serve & 
-          pid=$!
-          sleep 10
-          ollama pull granite3.2:2b
-          wait $pid
-        ports:
-        - name: ollamaport
-          containerPort: 11434
-          protocol: TCP
+            memory: "6Gi"
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: model-volume
+          mountPath: /models
+      volumes:
+      - name: model-volume
+        persistentVolumeClaim:
+          claimName: model-pvc
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ollama-ds
-  namespace: ollama
+  name: llama-service
+  namespace: llama
 spec:
   selector:
-    app: ollama-ds
+    app: llama-server
   ports:
-  - port: 11434
-    name: ollamaport
-    targetPort: ollamaport
-    protocol: TCP
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+  loadBalancerIP: 192.168.0.244

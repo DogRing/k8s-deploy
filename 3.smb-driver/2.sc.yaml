@@ -1,0 +1,16 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: az-smb
+provisioner: smb.csi.k8s.io
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+mountOptions:
+  - dir_mode=0777
+  - file_mode=0777
+  - vers=3.0
+parameters:
+  source: //192.168.4.4/azdata
+  csi.storage.k8s.io/node-stage-secret-name: azsmb-creds
+  csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+# allowVolumeExpansion: false
